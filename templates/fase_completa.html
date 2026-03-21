@@ -17,5 +17,9 @@
     <a href="/iniciar_exercicio"><button class="botao">🔄 PRÓXIMA FASE!</button></a>
     <br><br>
     <a href="/"><button class="botao" style="background:#2196f3;">🏠 Voltar ao Início</button></a>
+{% if voltar_url %}
+    <br><br>
+    <a href="{{ voltar_url }}"><button class="botao" style="background:#4169E1;">← Voltar ao Menu</button></a>
+{% endif %}
 </body>
 </html>

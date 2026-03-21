@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Ordem das Operações - Tabuada Master</title>
+    <style>
+        body { font-family: 'Comic Sans MS', cursive; background: linear-gradient(to bottom, #87CEEB, #4682B4); text-align: center; padding: 20px; }
+        h1 { color: #00008B; text-shadow: 2px 2px #fff; }
+        .botao { background: #FF4500; color: white; padding: 15px 30px; font-size: 24px; border: none; border-radius: 20px; cursor: pointer; box-shadow: 0 5px #CC3700; margin: 20px; }
+        .botao:active { transform: translateY(4px); box-shadow: 0 1px #CC3700; }
+    </style>
+</head>
+<body>
+    <h1>🧠 Mestre da Ordem das Operações! 🧠</h1>
+    <p style="font-size:22px;">Vamos treinar o cérebro para resolver expressões passo a passo?<br>
+    Comece fácil e vire expert! Nível atual: <strong>{{ nivel }}</strong></p>
+    
+    <a href="/iniciar_ordem"><button class="botao">🚀 COMEÇAR OS DESAFIOS!</button></a>
+    <br>
+    <a href="/"><button class="botao" style="background:#4169E1;">← Voltar à Tabuada</button></a>
+    
+    <p style="margin-top:50px; font-size:18px;">Pontuação total: <strong>{{ total }}</strong> ⭐</p>
+</body>
+</html>

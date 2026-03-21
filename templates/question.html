@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Exercício - Tabuada Master</title>
+    <style>
+        body { font-family: 'Comic Sans MS', cursive; background: linear-gradient(#ffeb3b, #4caf50); text-align:center; padding:20px; }
+        .pergunta { font-size: 48px; margin: 30px; color: #d32f2f; }
+        input { font-size: 40px; width: 150px; text-align:center; padding:10px; }
+        .progresso { height: 20px; background: #4caf50; width: {{ progresso }}%; margin: 20px auto; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Nível {{ nivel }} ⭐</h1>
+    <div class="progresso"></div>
+    <p style="font-size:24px;">Pergunta {{ indice }}/10</p>
+    
+    <div class="pergunta">
+        Quanto é <strong>{{ questao.a }} × {{ questao.b }}</strong> ?
+    </div>
+    
+    <form method="POST">
+        <input type="number" name="resposta" required autofocus>
+        <br><br>
+        <button type="submit" style="font-size:28px; padding:15px 40px; background:#ff9800; color:white; border:none; border-radius:15px;">
+            Responder ✅
+        </button>
+    </form>
+    
+    <p>Pontuação total: <strong>{{ total_score }}</strong> ⭐</p>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Fim da Fase!</title>
+    <style>
+        body { font-family: 'Comic Sans MS', cursive; background: linear-gradient(#4caf50, #ffeb3b); text-align:center; padding:40px; }
+        h1 { font-size: 50px; }
+        .botao { background:#ff9800; color:white; font-size:28px; padding:20px 50px; border:none; border-radius:20px; }
+    </style>
+</head>
+<body>
+    <h1>{{ mensagem|safe }}</h1>
+    <p style="font-size:28px;">Acertos: <strong>{{ acertos }}/10</strong></p>
+    <p style="font-size:24px;">Pontuação total: <strong>{{ total }}</strong> ⭐</p>
+    
+    <a href="/iniciar_exercicio"><button class="botao">🔄 PRÓXIMA FASE!</button></a>
+    <br><br>
+    <a href="/"><button class="botao" style="background:#2196f3;">🏠 Voltar ao Início</button></a>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Exercício - ANA-MATE</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .container {
+            text-align: center;
+            max-width: 800px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            animation: fadeIn 1s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animated-message {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .level {
+            font-size: 1.5em;
+            margin: 10px 0;
+            animation: glow 2s infinite alternate;
+        }
+        @keyframes glow {
+            from { text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #fff; }
+            to { text-shadow: 0 0 10px #ff0, 0 0 20px #ff0, 0 0 30px #ff0; }
+        }
+        .goal {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+        .progress {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        .level-box {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            transition: all 0.3s;
+        }
+        .current {
+            background: #ffeb3b;
+            color: black;
+            animation: bounce 1s infinite;
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+        .tips {
+            font-size: 1.1em;
+            margin: 20px 0;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .motivational {
+            font-style: italic;
+            margin: 10px 0;
+            animation: fadeIn 2s ease-in;
+        }
+        .buttons {
+            margin-top: 30px;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+        .start-btn {
+            background: #4caf50;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        .start-btn:hover {
+            background: #45a049;
+            transform: scale(1.1);
+        }
+        .back-btn {
+            background: #f44336;
+            color: white;
+        }
+        .back-btn:hover {
+            background: #d32f2f;
+        }
+        @media (max-width: 600px) {
+            .animated-message {
+                font-size: 2em;
+            }
+            .progress {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="animated-message">Prepare-se para o desafio da tabuada! 🚀</div>
+        <div class="level">Nível Atual: {{ aluno.nivel_tabuada }}</div>
+        <div class="goal">Acerte 8 de 10 para subir de nível!</div>
+        <div class="progress">
+            <!-- Simulação de níveis; ajustar dinamicamente se necessário -->
+            <div class="level-box" id="A1">A1</div>
+            <div class="level-box" id="A2">A2</div>
+            <div class="level-box" id="A3">A3</div>
+            <div class="level-box" id="A4">A4</div>
+            <div class="level-box" id="A5">A5</div>
+            <div class="level-box" id="A6">A6</div>
+            <div class="level-box" id="A7">A7</div>
+            <div class="level-box" id="A8">A8</div>
+            <div class="level-box" id="A9">A9</div>
+            <div class="level-box" id="A10">A10</div>
+            <div class="level-box" id="B1">B1</div>
+            <div class="level-box" id="B2">B2</div>
+            <div class="level-box" id="B3">B3</div>
+            <div class="level-box" id="B4">B4</div>
+            <div class="level-box" id="B5">B5</div>
+            <div class="level-box" id="B6">B6</div>
+            <div class="level-box" id="B7">B7</div>
+            <div class="level-box" id="B8">B8</div>
+            <div class="level-box" id="B9">B9</div>
+            <div class="level-box" id="B10">B10</div>
+        </div>
+        <div class="tips">Dicas para o nível {{ aluno.nivel_tabuada }}: Pratique multiplicações rápidas e lembre-se das propriedades!</div>
+        <div class="motivational">"Você é capaz de conquistar qualquer desafio! Sinta a energia e vá em frente!"</div>
+        <div class="buttons">
+            <button class="start-btn" onclick="startExercise()">COMEÇAR! 🎯</button>
+            <button class="back-btn" onclick="window.location.href='/menu'">Voltar ao Menu</button>
+        </div>
+    </div>
+    <script>
+        // Destaque o nível atual
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentLevel = '{{ aluno.nivel_tabuada }}';
+            const levelElement = document.getElementById(currentLevel);
+            if (levelElement) {
+                levelElement.classList.add('current');
+            }
+        });
+
+        function startExercise() {
+            fetch('/iniciar_exercicio', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ nivel: '{{ aluno.nivel_tabuada }}' }),
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = '/exercicio';
+                } else {
+                    alert('Erro ao iniciar exercício. Tente novamente!');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro de conexão. Tente novamente!');
+            });
+        }
+    </script>
+</body>
+</html>

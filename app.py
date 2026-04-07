@@ -1,248 +1,252 @@
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for, flash
+from flask_sqlalchemy import SQLAlchemy
 import random
-import re
-from flask import Flask, render_template, request, redirect, url_for, session
-
+import math
 
 app = Flask(__name__)
-app.secret_key = 'tabuada_magica_123'  # Troque depois para algo mais seguro
+app.config['SECRET_KEY'] = 'sua_chave_secreta_aqui'  # Substitua por uma chave segura
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///anamate.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
-# Frases divertidas para gamificação (criança ama!)
-feedbacks_certo = ["🎉 MUITO BEM!", "🌟 Você é um gênio!", "🔥 Arrasou!", "😎 Super-herói da matemática!", "⭐ Parabéns, craque!"]
-feedbacks_errado = ["😔 Quase! Vamos tentar de novo!", "💪 Na próxima você acerta!", "🙃 Ops! A resposta certa era {}"]
+# Modelos do Banco de Dados
+class Aluno(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), unique=True, nullable=False)
+    total_estrelas = db.Column(db.Integer, default=0)
+    nivel_tabuada = db.Column(db.String(10), default='A1')  # A1 a B10
+    nivel_chuva_numeros = db.Column(db.Integer, default=1)  # Níveis para chuva de números
 
-def get_parametros_nivel(nivel):
-    """Escalável: fácil adicionar novos níveis depois (C, D, frações, etc.)"""
+class Tentativa(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    aluno_id = db.Column(db.Integer, db.ForeignKey('aluno.id'), nullable=False)
+    pergunta = db.Column(db.String(200), nullable=False)
+    resposta_correta = db.Column(db.String(50), nullable=False)
+    resposta_aluno = db.Column(db.String(50), nullable=False)
+    acertou = db.Column(db.Boolean, nullable=False)
+    estrelas = db.Column(db.Integer, nullable=False)
+    tentativa_numero = db.Column(db.Integer, nullable=False)  # Número da tentativa para a pergunta
+    jogo_tipo = db.Column(db.String(50), nullable=False)  # 'tabuada', 'chuva_numeros', etc.
+
+class QuestaoErrada(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    aluno_id = db.Column(db.Integer, db.ForeignKey('aluno.id'), nullable=False)
+    pergunta = db.Column(db.String(200), nullable=False)
+    resposta_correta = db.Column(db.String(50), nullable=False)
+
+# Funções Auxiliares
+
+def calcular_estrelas(tentativa_numero):
+    if tentativa_numero == 1:
+        return 3
+    elif tentativa_numero == 2:
+        return 2
+    else:
+        return 1
+
+def gerar_questao_tabuada(nivel):
+    # Níveis A1-A10: multiplicação simples, B1-B10: mais avançado
     if nivel.startswith('A'):
-        return 1, 9, 1, 9          # Tabuada completa 1-9
-    elif nivel.startswith('B'):
-        return 10, 99, 1, 9        # Dezenas e unidades (ex: 12 × 3)
-    return 1, 9, 1, 9
+        num1 = random.randint(1, 10)
+        num2 = random.randint(1, 10)
+        pergunta = f'{num1} x {num2}'
+        resposta = str(num1 * num2)
+    else:
+        # B: divisões ou multiplicações maiores
+        num1 = random.randint(10, 20)
+        num2 = random.randint(1, 10)
+        pergunta = f'{num1} x {num2}'
+        resposta = str(num1 * num2)
+    return pergunta, resposta
 
-@app.route('/')
-def home():
-    if 'total_score' not in session:
-        session['total_score'] = 0
-        session['current_level'] = 'A1'
-    return render_template('index.html')
+def gerar_questao_chuva(nivel):
+    # Tabuada ou raiz quadrada
+    tipo = random.choice(['tabuada', 'raiz'])
+    if tipo == 'tabuada':
+        num1 = random.randint(1, 10 + nivel)
+        num2 = random.randint(1, 10)
+        pergunta = f'{num1} x {num2}'
+        resposta = str(num1 * num2)
+    else:
+        num = random.randint(1, 10 + nivel)
+        pergunta = f'√{num**2}'
+        resposta = str(num)
+    return pergunta, resposta
+
+# Rotas
+@app.route('/', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        nome = request.form.get('nome').strip()
+        if not nome:
+            flash('Nome é obrigatório.', 'error')
+            return render_template('login.html')
+        aluno = Aluno.query.filter_by(nome=nome).first()
+        if not aluno:
+            aluno = Aluno(nome=nome)
+            db.session.add(aluno)
+            db.session.commit()
+        session['aluno_id'] = aluno.id
+        return redirect(url_for('menu'))
+    return render_template('login.html')
+
+@app.route('/menu')
+def menu():
+    if 'aluno_id' not in session:
+        return redirect(url_for('login'))
+    aluno = Aluno.query.get(session['aluno_id'])
+    return render_template('menu.html', aluno=aluno)
 
 @app.route('/iniciar_exercicio')
 def iniciar_exercicio():
-    """Gera 10 questões novas aleatórias no início de cada fase"""
-    nivel = session.get('current_level', 'A1')
-    min_a, max_a, min_b, max_b = get_parametros_nivel(nivel)
-    
-    questoes = []
-    for _ in range(10):
-        a = random.randint(min_a, max_a)
-        b = random.randint(min_b, max_b)
-        questoes.append({
-            'a': a,
-            'b': b,
-            'correto': a * b,
-            'resposta_aluno': None
-        })
-    
-    session['questoes'] = questoes
-    session['indice_atual'] = 0
-    session['acertos_fase'] = 0
-    return redirect(url_for('exercicio'))
+    if 'aluno_id' not in session:
+        return redirect(url_for('login'))
+    aluno = Aluno.query.get(session['aluno_id'])
+    # Lógica para iniciar exercício de tabuada baseado no nível
+    return render_template('iniciar_exercicio.html', aluno=aluno)
 
 @app.route('/exercicio', methods=['GET', 'POST'])
 def exercicio():
-    if 'questoes' not in session:
-        return redirect(url_for('iniciar_exercicio'))
-    
-    questoes = session['questoes']
-    indice = session['indice_atual']
-    
+    if 'aluno_id' not in session:
+        return redirect(url_for('login'))
+    aluno = Aluno.query.get(session['aluno_id'])
     if request.method == 'POST':
-        try:
-            resposta = int(request.form['resposta'])
-        except:
-            resposta = -999  # inválido
-        
-        questao_atual = questoes[indice]
-        if resposta == questao_atual['correto']:
-            session['acertos_fase'] += 1
-            feedback = random.choice(feedbacks_certo)
+        pergunta = request.form.get('pergunta')
+        resposta_aluno = request.form.get('resposta')
+        resposta_correta = request.form.get('resposta_correta')
+        tentativa_numero = int(request.form.get('tentativa_numero', 1))
+        acertou = resposta_aluno.strip() == resposta_correta
+        estrelas = calcular_estrelas(tentativa_numero) if acertou else 0
+        tentativa = Tentativa(
+            aluno_id=aluno.id,
+            pergunta=pergunta,
+            resposta_correta=resposta_correta,
+            resposta_aluno=resposta_aluno,
+            acertou=acertou,
+            estrelas=estrelas,
+            tentativa_numero=tentativa_numero,
+            jogo_tipo='tabuada'
+        )
+        db.session.add(tentativa)
+        if acertou:
+            aluno.total_estrelas += estrelas
+            # Avançar nível se necessário
+            if aluno.nivel_tabuada != 'B10':
+                # Lógica simples para avançar
+                pass  # Implementar lógica de avanço
         else:
-            feedback = random.choice(feedbacks_errado).format(questao_atual['correto'])
-        
-        questao_atual['resposta_aluno'] = resposta
-        session['questoes'] = questoes  # salva
-        
-        session['indice_atual'] += 1
-        
-        # Fim da fase (10 questões)
-        if session['indice_atual'] >= 10:
-            acertos = session['acertos_fase']
-            nivel_atual = session['current_level']
-            
-            # Lógica de subida de nível (exatamente como você pediu)
-            if acertos >= 8:  # 80% ou mais = sobe de nível
-                if nivel_atual.startswith('A'):
-                    sub = int(nivel_atual[1:])
-                    novo_nivel = f'A{sub+1}' if sub < 10 else 'B1'
-                else:
-                    sub = int(nivel_atual[1:]) if nivel_atual[1:].isdigit() else 1
-                    novo_nivel = f'B{sub+1}'
-                
-                session['current_level'] = novo_nivel
-                mensagem = f"🎉 PARABÉNS! Você acertou {acertos}/10 e subiu para o nível <strong>{novo_nivel}</strong>!"
-            else:
-                mensagem = f"💪 Você acertou {acertos}/10. Vamos repetir essa fase para ficar expert!"
-                # Não sobe, mas mantém o mesmo nível
-            
-            session['total_score'] = session.get('total_score', 0) + acertos * 10
-            session.pop('questoes', None)
-            session.pop('indice_atual', None)
-            
-            return render_template('fase_completa.html', 
-                                   mensagem=mensagem, 
-                                   nivel=nivel_atual,
-                                   acertos=acertos,
-                                   total=session['total_score'])
-        
-        # Continua para próxima questão
-        return redirect(url_for('exercicio'))
-    
-    # GET: mostra a pergunta atual
-    questao = questoes[indice]
-    progresso = (indice / 10) * 100
-    nivel = session['current_level']
-    
-    return render_template('question.html',
-                           questao=questao,
-                           indice=indice + 1,
-                           nivel=nivel,
-                           progresso=progresso,
-                           total_score=session.get('total_score', 0))
-
-# ------------------ ORDEM DAS OPERAÇÕES ------------------
-
-def gerar_expressao_simples(nivel):
-    """Gera expressões fáceis para níveis iniciais (O1-O4)"""
-    ops = ['+', '-', '*', '/']  # usamos * e / no código, mas mostramos × e ÷
-    if nivel <= 2:  # Nível 1-2: 2-3 termos, só parênteses simples ou sem
-        num_termos = random.choice([2, 3])
-        nums = [random.randint(2, 15) for _ in range(num_termos)]
-        op_list = [random.choice(ops) for _ in range(num_termos-1)]
-        
-        # Chance de colocar parênteses simples
-        if random.random() < 0.6 and num_termos >= 3:
-            pos = random.randint(1, num_termos-2)
-            expr = f"{nums[0]} {op_list[0]} ({nums[1]} {op_list[1]} {nums[2]})"
-            if num_termos > 3:
-                expr += f" {op_list[2]} {nums[3]}"
-        else:
-            expr = ' '.join([str(n) if i % 2 == 0 else op_list[i//2] for i, n in enumerate(nums + op_list)])
-        
-        # Garantir que não divida por zero e resultado inteiro
-        try:
-            res = eval(expr.replace('×', '*').replace('÷', '/'))
-            if not isinstance(res, int) or res <= 0 or '/' in expr and res != int(res):
-                return gerar_expressao_simples(nivel)  # tenta de novo
-            return expr.replace('*', '×').replace('/', '÷'), int(res)
-        except:
-            return gerar_expressao_simples(nivel)
-    
-    else:  # Níveis mais avançados: mais termos, colchetes opcionais
-        # ... pode expandir depois
-        return gerar_expressao_simples(2)  # placeholder por enquanto
+            # Adicionar à fila de repetição
+            questao_errada = QuestaoErrada(
+                aluno_id=aluno.id,
+                pergunta=pergunta,
+                resposta_correta=resposta_correta
+            )
+            db.session.add(questao_errada)
+        db.session.commit()
+        return jsonify({'acertou': acertou, 'estrelas': estrelas})
+    # GET: gerar nova questão
+    pergunta, resposta = gerar_questao_tabuada(aluno.nivel_tabuada)
+    return render_template('exercicio.html', pergunta=pergunta, resposta_correta=resposta, tentativa_numero=1)
 
 @app.route('/ordem_operacoes')
-def ordem_operacoes_home():
-    if 'ordem_nivel' not in session:
-        session['ordem_nivel'] = 'O1'
-        session['ordem_total_score'] = 0
-    return render_template('ordem_home.html', nivel=session['ordem_nivel'], total=session.get('ordem_total_score', 0))
+def ordem_operacoes():
+    if 'aluno_id' not in session:
+        return redirect(url_for('login'))
+    # Página para ordem das operações
+    return render_template('ordem_operacoes.html')
 
-@app.route('/iniciar_ordem')
-def iniciar_ordem():
-    nivel = session.get('ordem_nivel', 'O1')
-    subnivel = int(nivel[1:]) if nivel.startswith('O') else 1
-    
-    questoes = []
-    for _ in range(10):
-        expr, correto = gerar_expressao_simples(subnivel)
-        questoes.append({
-            'expressao': expr,
-            'correto': correto,
-            'resposta_aluno': None
-        })
-    
-    session['ordem_questoes'] = questoes
-    session['ordem_indice'] = 0
-    session['ordem_acertos'] = 0
-    return redirect(url_for('exercicio_ordem'))
+@app.route('/chuva_numeros')
+def chuva_numeros():
+    if 'aluno_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('chuva_numeros.html')
 
-@app.route('/exercicio_ordem', methods=['GET', 'POST'])
-def exercicio_ordem():
-    if 'ordem_questoes' not in session:
-        return redirect(url_for('iniciar_ordem'))
-    
-    questoes = session['ordem_questoes']
-    indice = session['ordem_indice']
-    
-    if request.method == 'POST':
-        try:
-            resposta = int(request.form['resposta'])
-        except:
-            resposta = -999
-        
-        questao_atual = questoes[indice]
-        if resposta == questao_atual['correto']:
-            session['ordem_acertos'] += 1
-            feedback = random.choice(feedbacks_certo)
-        else:
-            feedback = random.choice(feedbacks_errado).format(questao_atual['correto'])
-        
-        questao_atual['resposta_aluno'] = resposta
-        session['ordem_questoes'] = questoes
-        
-        session['ordem_indice'] += 1
-        
-        if session['ordem_indice'] >= 10:
-            acertos = session['ordem_acertos']
-            nivel_atual = session['ordem_nivel']
-            
-            if acertos >= 8:
-                sub = int(nivel_atual[1:])
-                novo_nivel = f'O{sub+1}' if sub < 10 else 'O10'  # pode expandir depois
-                session['ordem_nivel'] = novo_nivel
-                mensagem = f"🎉 INCRÍVEL! Você acertou {acertos}/10 e subiu para o nível <strong>{novo_nivel}</strong>!"
-            else:
-                mensagem = f"💪 Você acertou {acertos}/10. Vamos treinar mais esse nível!"
-            
-            session['ordem_total_score'] = session.get('ordem_total_score', 0) + acertos * 10
-            session.pop('ordem_questoes', None)
-            session.pop('ordem_indice', None)
-            
-            return render_template('fase_completa.html', 
-                                   mensagem=mensagem, 
-                                   nivel=nivel_atual,
-                                   acertos=acertos,
-                                   total=session['ordem_total_score'],
-                                   voltar_url='/ordem_operacoes')
-        
-        return redirect(url_for('exercicio_ordem'))
-    
-    questao = questoes[indice]
-    progresso = (indice / 10) * 100
-    
-    return render_template('ordem_question.html',
-                           questao=questao,
-                           indice=indice + 1,
-                           nivel=session['ordem_nivel'],
-                           progresso=progresso,
-                           total_score=session.get('ordem_total_score', 0))
+@app.route('/api/questao_chuva', methods=['POST'])
+def api_questao_chuva():
+    if 'aluno_id' not in session:
+        return jsonify({'error': 'Não logado'}), 401
+    aluno = Aluno.query.get(session['aluno_id'])
+    pergunta, resposta = gerar_questao_chuva(aluno.nivel_chuva_numeros)
+    return jsonify({'pergunta': pergunta, 'resposta_correta': resposta})
 
+@app.route('/api/validar_chuva', methods=['POST'])
+def api_validar_chuva():
+    if 'aluno_id' not in session:
+        return jsonify({'error': 'Não logado'}), 401
+    data = request.get_json()
+    resposta_aluno = data.get('resposta')
+    resposta_correta = data.get('resposta_correta')
+    tentativa_numero = data.get('tentativa_numero', 1)
+    acertou = resposta_aluno.strip() == resposta_correta
+    estrelas = calcular_estrelas(tentativa_numero) if acertou else 0
+    return jsonify({'acertou': acertou, 'estrelas': estrelas})
+
+@app.route('/api/salvar_chuva', methods=['POST'])
+def api_salvar_chuva():
+    if 'aluno_id' not in session:
+        return jsonify({'error': 'Não logado'}), 401
+    data = request.get_json()
+    aluno_id = session['aluno_id']
+    tentativa = Tentativa(
+        aluno_id=aluno_id,
+        pergunta=data['pergunta'],
+        resposta_correta=data['resposta_correta'],
+        resposta_aluno=data['resposta_aluno'],
+        acertou=data['acertou'],
+        estrelas=data['estrelas'],
+        tentativa_numero=data['tentativa_numero'],
+        jogo_tipo='chuva_numeros'
+    )
+    db.session.add(tentativa)
+    aluno = Aluno.query.get(aluno_id)
+    if data['acertou']:
+        aluno.total_estrelas += data['estrelas']
+        # Avançar nível
+    else:
+        questao_errada = QuestaoErrada(
+            aluno_id=aluno_id,
+            pergunta=data['pergunta'],
+            resposta_correta=data['resposta_correta']
+        )
+        db.session.add(questao_errada)
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/api/progresso_aluno')
+def api_progresso_aluno():
+    if 'aluno_id' not in session:
+        return jsonify({'error': 'Não logado'}), 401
+    aluno = Aluno.query.get(session['aluno_id'])
+    return jsonify({
+        'nome': aluno.nome,
+        'total_estrelas': aluno.total_estrelas,
+        'nivel_tabuada': aluno.nivel_tabuada,
+        'nivel_chuva_numeros': aluno.nivel_chuva_numeros
+    })
+
+@app.route('/api/questoes_erradas')
+def api_questoes_erradas():
+    if 'aluno_id' not in session:
+        return jsonify({'error': 'Não logado'}), 401
+    questoes = QuestaoErrada.query.filter_by(aluno_id=session['aluno_id']).all()
+    return jsonify([{
+        'pergunta': q.pergunta,
+        'resposta_correta': q.resposta_correta
+    } for q in questoes])
+
+@app.route('/logout')
+def logout():
+    session.pop('aluno_id', None)
+    return redirect(url_for('login'))
+
+
+# Inicialização do banco de dados
 if __name__ == '__main__':
-    import socket
-    
-    ip = socket.gethostbyname(socket.gethostname())
+    with app.app_context():
+        db.create_all()
     print(f"🚀 Tabuada Master rodando!")
     print(f"→ Local:    http://127.0.0.1:5000")
     print(f"→ Rede:     http://{ip}:5000   (teste no celular!)")
     
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=True)
+

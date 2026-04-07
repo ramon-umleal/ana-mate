@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANA-MATE - Exercício de Tabuada</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .question {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            animation: bounceIn 0.5s ease-out;
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        input[type="number"] {
+            font-size: 2em;
+            padding: 10px;
+            width: 80%;
+            max-width: 200px;
+            text-align: center;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            transition: border-color 0.3s;
+        }
+        input[type="number"]:focus {
+            border-color: #4CAF50;
+            outline: none;
+            animation: pulse 0.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+        button {
+            font-size: 1.5em;
+            padding: 15px 30px;
+            margin-top: 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        .progress {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+        .score {
+            margin-top: 20px;
+            font-size: 1.5em;
+        }
+        .stars {
+            color: gold;
+        }
+        .feedback {
+            margin-top: 20px;
+            font-size: 2em;
+            transition: opacity 0.5s;
+        }
+        .correct { color: green; }
+        .incorrect { color: red; }
+        .confetti {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .confetti-piece {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #FFD700;
+            animation: fall 3s linear infinite;
+        }
+        @keyframes fall {
+            to { transform: translateY(100vh) rotate(360deg); }
+        }
+        @media (max-width: 768px) {
+            .question { font-size: 2em; }
+            input[type="number"] { font-size: 1.5em; }
+            button { font-size: 1.2em; padding: 12px 24px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="question">{{ pergunta }} = ?</div>
+        <input type="number" id="answer" inputmode="numeric" pattern="[0-9]*" placeholder="Digite a resposta">
+        <button id="submit">RESPONDER</button>
+        <div class="progress">Pergunta <span id="current">1</span> de 10</div>
+        <div class="score">Pontos: <span id="points">0</span> | Estrelas: <span class="stars" id="stars">★</span> | Nível: <span id="level">1</span></div>
+        <div id="feedback" class="feedback"></div>
+    </div>
+    <div id="confetti" class="confetti" style="display: none;"></div>
+    <script>
+        let attempts = 0;
+        const maxAttempts = 3;
+        const answerInput = document.getElementById('answer');
+        const submitButton = document.getElementById('submit');
+        const feedback = document.getElementById('feedback');
+        const confetti = document.getElementById('confetti');
+
+        submitButton.addEventListener('click', async () => {
+            const userAnswer = parseInt(answerInput.value);
+            if (isNaN(userAnswer)) return;
+
+            attempts++;
+            const isCorrect = userAnswer === {{ resposta_correta }};
+
+            if (isCorrect) {
+                feedback.textContent = '✅ Correto!';
+                feedback.className = 'feedback correct';
+                showConfetti();
+                playSound('correct');
+                updateProgress();
+                // Reset for next question
+                setTimeout(() => {
+                    feedback.textContent = '';
+                    answerInput.value = '';
+                    attempts = 0;
+                }, 2000);
+            } else {
+                if (attempts < maxAttempts) {
+                    feedback.textContent = '❌ Tente novamente!';
+                    feedback.className = 'feedback incorrect';
+                    playSound('incorrect');
+                } else {
+                    feedback.textContent = `❌ Errado! Resposta correta: {{ resposta_correta }}`;
+                    feedback.className = 'feedback incorrect';
+                    playSound('incorrect');
+                    // Reset attempts, maybe deduct points
+                    attempts = 0;
+                    setTimeout(() => {
+                        feedback.textContent = '';
+                        answerInput.value = '';
+                    }, 3000);
+                }
+            }
+
+            // POST to /exercicio
+            await fetch('/exercicio', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answer: userAnswer, correct: isCorrect })
+            });
+        });
+
+        function updateProgress() {
+            const current = parseInt(document.getElementById('current').textContent);
+            if (current < 10) {
+                document.getElementById('current').textContent = current + 1;
+            }
+            // Update points and stars logic here if needed
+        }
+
+        function showConfetti() {
+            confetti.style.display = 'block';
+            for (let i = 0; i < 50; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.left = Math.random() * 100 + '%';
+                piece.style.animationDelay = Math.random() * 3 + 's';
+                confetti.appendChild(piece);
+            }
+            setTimeout(() => {
+                confetti.style.display = 'none';
+                confetti.innerHTML = '';
+            }, 3000);
+        }
+
+        function playSound(type) {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            oscillator.frequency.setValueAtTime(type === 'correct' ? 800 : 200, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+    </script>
+</body>
+</html>

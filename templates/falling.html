@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chuva de Números - ANA-MATE</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom, #87CEEB, #FFD700);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #score {
+            font-size: 1.2em;
+        }
+        #pause-btn {
+            padding: 10px 20px;
+            background: #FF4500;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #question {
+            text-align: center;
+            font-size: 2em;
+            margin: 20px 0;
+            color: #333;
+        }
+        #game-area {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        .number {
+            position: absolute;
+            font-size: 2em;
+            color: #000;
+            cursor: pointer;
+            animation: fall linear infinite;
+        }
+        @keyframes fall {
+            from { top: -50px; }
+            to { top: 100vh; }
+        }
+        .correct {
+            background: #00FF00;
+            border-radius: 50%;
+        }
+        .wrong {
+            background: #FF0000;
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        .explosion {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, #FFD700, #FF4500);
+            border-radius: 50%;
+            animation: explode 0.5s ease-out;
+        }
+        @keyframes explode {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        #level-up {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3em;
+            color: #FFD700;
+            animation: fadeInOut 2s;
+        }
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div id="score">Estrelas: <span id="stars">0</span> | Nível: <span id="level">1</span> | Tempo: <span id="time">0</span>s</div>
+        <button id="pause-btn">Pausar</button>
+    </div>
+    <div id="question">Carregando pergunta...</div>
+    <div id="game-area"></div>
+    <div id="level-up" style="display: none;">Nível Up!</div>
+
+    <script>
+        class ChuvaNumeros {
+            constructor() {
+                this.stars = 0;
+                this.level = 1;
+                this.time = 0;
+                this.correctCount = 0;
+                this.speed = 1;
+                this.question = null;
+                this.correctAnswer = null;
+                this.numbers = [];
+                this.gameRunning = true;
+                this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                this.init();
+            }
+
+            init() {
+                this.loadQuestion();
+                this.startTimer();
+                this.spawnNumbers();
+                document.getElementById('pause-btn').addEventListener('click', () => this.pauseGame());
+            }
+
+            async loadQuestion() {
+                try {
+                    const response = await fetch('/api/questao_chuva');
+                    const data = await response.json();
+                    this.question = data.question;
+                    this.correctAnswer = data.answer;
+                    document.getElementById('question').textContent = this.question;
+                } catch (error) {
+                    console.error('Erro ao carregar pergunta:', error);
+                }
+            }
+
+            startTimer() {
+                setInterval(() => {
+                    if (this.gameRunning) {
+                        this.time++;
+                        document.getElementById('time').textContent = this.time;
+                    }
+                }, 1000);
+            }
+
+            spawnNumbers() {
+                setInterval(() => {
+                    if (this.gameRunning) {
+                        const num = Math.floor(Math.random() * 20) + 1;
+                        this.createNumber(num);
+                    }
+                }, 1000 / this.speed);
+            }
+
+            createNumber(num) {
+                const numberEl = document.createElement('div');
+                numberEl.className = 'number';
+                numberEl.textContent = num;
+                numberEl.style.left = Math.random() * (window.innerWidth - 50) + 'px';
+                numberEl.style.animationDuration = (5 / this.speed) + 's';
+                numberEl.addEventListener('click', () => this.checkAnswer(num, numberEl));
+                document.getElementById('game-area').appendChild(numberEl);
+                this.numbers.push(numberEl);
+
+                // Remove after animation
+                setTimeout(() => {
+                    if (numberEl.parentNode) {
+                        numberEl.parentNode.removeChild(numberEl);
+                        this.numbers = this.numbers.filter(n => n !== numberEl);
+                    }
+                }, 5000 / this.speed);
+            }
+
+            async checkAnswer(num, el) {
+                const isCorrect = num == this.correctAnswer;
+                if (isCorrect) {
+                    el.classList.add('correct');
+                    this.playSound('correct');
+                    this.showExplosion(el);
+                    this.stars++;
+                    this.correctCount++;
+                    document.getElementById('stars').textContent = this.stars;
+                    if (this.correctCount >= 10) {
+                        this.levelUp();
+                    } else {
+                        this.nextQuestion();
+                    }
+                } else {
+                    el.classList.add('wrong');
+                    this.playSound('wrong');
+                    setTimeout(() => el.remove(), 500);
+                }
+                // Validate with backend
+                await fetch('/api/validar_chuva', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ answer: num, correct: isCorrect })
+                });
+            }
+
+            nextQuestion() {
+                this.loadQuestion();
+                this.speed += 0.1;
+            }
+
+            levelUp() {
+                this.level++;
+                this.correctCount = 0;
+                this.speed = 1;
+                document.getElementById('level').textContent = this.level;
+                this.playSound('levelup');
+                const levelUpEl = document.getElementById('level-up');
+                levelUpEl.style.display = 'block';
+                setTimeout(() => levelUpEl.style.display = 'none', 2000);
+                this.saveProgress();
+            }
+
+            showExplosion(el) {
+                const explosion = document.createElement('div');
+                explosion.className = 'explosion';
+                explosion.style.left = el.style.left;
+                explosion.style.top = el.offsetTop + 'px';
+                document.getElementById('game-area').appendChild(explosion);
+                setTimeout(() => explosion.remove(), 500);
+            }
+
+            playSound(type) {
+                const oscillator = this.audioCtx.createOscillator();
+                const gainNode = this.audioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioCtx.destination);
+                if (type === 'correct') {
+                    oscillator.frequency.setValueAtTime(800, this.audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0.3, this.audioCtx.currentTime);
+                } else if (type === 'wrong') {
+                    oscillator.frequency.setValueAtTime(200, this.audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0.3, this.audioCtx.currentTime);
+                } else if (type === 'levelup') {
+                    oscillator.frequency.setValueAtTime(523, this.audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0.5, this.audioCtx.currentTime);
+                    oscillator.frequency.setValueAtTime(659, this.audioCtx.currentTime + 0.2);
+                    oscillator.frequency.setValueAtTime(784, this.audioCtx.currentTime + 0.4);
+                }
+                oscillator.start();
+                oscillator.stop(this.audioCtx.currentTime + 0.5);
+            }
+
+            pauseGame() {
+                this.gameRunning = !this.gameRunning;
+                document.getElementById('pause-btn').textContent = this.gameRunning ? 'Pausar' : 'Continuar';
+            }
+
+            async saveProgress() {
+                await fetch('/api/salvar_chuva', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stars: this.stars, level: this.level, time: this.time })
+                });
+            }
+        }
+
+        new ChuvaNumeros();
+    </script>
+</body>
+</html>

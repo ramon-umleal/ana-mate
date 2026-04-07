@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANA-MATE - Revisão de Questões Erradas</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        .progress {
+            width: 100%;
+            background: #ddd;
+            border-radius: 10px;
+            height: 20px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: #4CAF50;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .card {
+            background: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            display: none;
+            animation: slideIn 0.5s ease;
+        }
+        .card.active {
+            display: block;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .question {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            font-size: 1.2em;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .feedback {
+            text-align: center;
+            font-size: 1.2em;
+            margin-top: 10px;
+            display: none;
+        }
+        .correct {
+            color: #4CAF50;
+        }
+        .incorrect {
+            color: #FF9800;
+        }
+        .back-btn {
+            background: #6c757d;
+            margin-top: 20px;
+        }
+        .back-btn:hover {
+            background: #545b62;
+        }
+        .gamification {
+            text-align: center;
+            color: #fff;
+            margin-top: 10px;
+        }
+        .confetti {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+        }
+        .confetti-piece {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #FFD700;
+            animation: fall 3s linear infinite;
+        }
+        @keyframes fall {
+            to { transform: translateY(100vh) rotate(360deg); }
+        }
+        @media (max-width: 600px) {
+            input {
+                font-size: 1.5em;
+            }
+            .question {
+                font-size: 1.3em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Vamos revisar as questões que você errou? 💪</h1>
+        <div class="progress">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div id="cardsContainer"></div>
+        <button class="back-btn" onclick="window.location.href='menu.html'">Voltar ao Menu</button>
+        <div class="gamification" id="gamificationText"></div>
+    </div>
+    <div class="confetti" id="confetti"></div>
+
+    <script>
+        let questions = [];
+        let currentIndex = 0;
+        let score = 0;
+
+        async function loadQuestions() {
+            try {
+                const response = await fetch('/api/questoes_erradas');
+                questions = await response.json();
+                if (questions.length > 0) {
+                    renderCards();
+                    updateProgress();
+                } else {
+                    document.getElementById('cardsContainer').innerHTML = '<p>Parabéns! Você não tem questões erradas para revisar.</p>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar questões:', error);
+            }
+        }
+
+        function renderCards() {
+            const container = document.getElementById('cardsContainer');
+            container.innerHTML = '';
+            questions.forEach((q, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                if (index === currentIndex) card.classList.add('active');
+                card.innerHTML = `
+                    <div class="question">${q.pergunta}</div>
+                    <input type="text" id="answer${index}" placeholder="Sua resposta" inputmode="numeric" pattern="[0-9]*">
+                    <button onclick="submitAnswer(${index})">Responder</button>
+                    <div class="feedback" id="feedback${index}"></div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function submitAnswer(index) {
+            const answer = document.getElementById(`answer${index}`).value.trim();
+            const feedback = document.getElementById(`feedback${index}`);
+            const card = document.querySelectorAll('.card')[index];
+
+            try {
+                const response = await fetch('/api/validar_chuva', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: questions[index].id, resposta: answer })
+                });
+                const result = await response.json();
+
+                if (result.correct) {
+                    feedback.textContent = '✅ Correto! Você está ficando expert!';
+                    feedback.className = 'feedback correct';
+                    score += 10; // Exemplo de pontuação
+                    playSound('correct');
+                    showConfetti();
+                    questions.splice(index, 1); // Remove da fila
+                    if (questions.length === 0) {
+                        document.getElementById('cardsContainer').innerHTML = '<p>Parabéns! Você resolveu todas as questões erradas!</p>';
+                    } else {
+                        currentIndex = Math.min(currentIndex, questions.length - 1);
+                        renderCards();
+                    }
+                } else {
+                    feedback.textContent = '❌ Errou novamente. Tente de novo!';
+                    feedback.className = 'feedback incorrect';
+                    playSound('incorrect');
+                }
+                feedback.style.display = 'block';
+                updateProgress();
+                updateGamification();
+            } catch (error) {
+                console.error('Erro ao validar resposta:', error);
+            }
+        }
+
+        function updateProgress() {
+            const progress = ((questions.length - (questions.length - currentIndex - 1)) / Math.max(questions.length, 1)) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+        }
+
+        function updateGamification() {
+            const total = questions.length + currentIndex + 1;
+            const resolved = currentIndex + 1;
+            document.getElementById('gamificationText').textContent = `${resolved} de ${total} questões erradas resolvidas! Pontuação: ${score} pontos.`;
+        }
+
+        function playSound(type) {
+            // Simulação de som - em produção, use arquivos de áudio
+            console.log(`Tocando som de ${type}`);
+        }
+
+        function showConfetti() {
+            const confetti = document.getElementById('confetti');
+            confetti.style.display = 'block';
+            for (let i = 0; i < 50; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.left = Math.random() * 100 + '%';
+                piece.style.animationDelay = Math.random() * 3 + 's';
+                confetti.appendChild(piece);
+            }
+            setTimeout(() => {
+                confetti.style.display = 'none';
+                confetti.innerHTML = '';
+            }, 3000);
+        }
+
+        loadQuestions();
+    </script>
+</body>
+</html>

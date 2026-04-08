@@ -4,268 +4,323 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chuva de Números - ANA-MATE</title>
+    <!-- Token de segurança obrigatório para a API -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
         body {
-            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background: linear-gradient(to bottom, #87CEEB, #FFD700);
             overflow: hidden;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+            background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364); /* Céu noturno */
+            color: white;
+            font-family: 'Arial', sans-serif;
+            user-select: none; /* Evita selecionar texto ao clicar rápido */
         }
-        #header {
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        /* Barra de Status no Topo */
+        #hud {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            padding: 15px 30px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.8);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 10;
+            font-size: 1.5em;
+            font-weight: bold;
         }
-        #score {
-            font-size: 1.2em;
-        }
-        #pause-btn {
-            padding: 10px 20px;
-            background: #FF4500;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        #question {
+        /* A Pergunta Gigante no Centro Superior */
+        #question-box {
+            position: absolute;
+            top: 80px;
+            width: 100%;
             text-align: center;
-            font-size: 2em;
-            margin: 20px 0;
-            color: #333;
+            font-size: 4em;
+            font-weight: bold;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
+            z-index: 10;
+            color: #FFD700;
         }
-        #game-area {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-        }
-        .number {
+        /* As Bolhas com os Números */
+        .drop {
             position: absolute;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle at 30% 30%, #4facfe, #00f2fe);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             font-size: 2em;
-            color: #000;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5), inset -5px -5px 15px rgba(0,0,0,0.2);
             cursor: pointer;
-            animation: fall linear infinite;
+            transition: transform 0.1s;
+            z-index: 5;
         }
-        @keyframes fall {
-            from { top: -50px; }
-            to { top: 100vh; }
+        .drop:hover {
+            transform: scale(1.1);
         }
-        .correct {
-            background: #00FF00;
-            border-radius: 50%;
-        }
-        .wrong {
-            background: #FF0000;
-            animation: shake 0.5s;
-        }
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
-        }
-        .explosion {
+        /* Tela de Fim de Jogo */
+        #game-over {
+            display: none;
             position: absolute;
-            width: 50px;
-            height: 50px;
-            background: radial-gradient(circle, #FFD700, #FF4500);
-            border-radius: 50%;
-            animation: explode 0.5s ease-out;
-        }
-        @keyframes explode {
-            0% { transform: scale(0); opacity: 1; }
-            100% { transform: scale(2); opacity: 0; }
-        }
-        #level-up {
-            position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 3em;
-            color: #FFD700;
-            animation: fadeInOut 2s;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 20;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-        @keyframes fadeInOut {
-            0%, 100% { opacity: 0; }
-            50% { opacity: 1; }
+        #game-over h2 {
+            font-size: 2.5em;
+            margin-top: 0;
+            color: #e74c3c;
+        }
+        .btn {
+            padding: 15px 30px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+            margin-right: 10px;
+            transition: background 0.3s, transform 0.2s;
+        }
+        .btn:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+        .btn-back {
+            background: #6c757d;
+        }
+        .btn-back:hover {
+            background: #5a6268;
         }
     </style>
 </head>
 <body>
-    <div id="header">
-        <div id="score">Estrelas: <span id="stars">0</span> | Nível: <span id="level">1</span> | Tempo: <span id="time">0</span>s</div>
-        <button id="pause-btn">Pausar</button>
+    <div id="game-container">
+        <div id="hud">
+            <div>Pontos: <span id="score">0</span></div>
+            <div>Vidas: <span id="lives">❤️❤️❤️</span></div>
+        </div>
+        
+        <!-- AQUI FICA A PERGUNTA -->
+        <div id="question-box">Carregando...</div>
+
+        <!-- Tela de Fim de Jogo -->
+        <div id="game-over">
+            <h2>Fim de Jogo!</h2>
+            <p style="font-size: 1.5em;">Sua pontuação: <strong id="final-score">0</strong></p>
+            <p style="font-size: 1.2em; color: #f39c12;">Estrelas ganhas: <strong id="earned-stars">0</strong> ⭐</p>
+            <button class="btn" onclick="startGame()">Jogar Novamente</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-back">Voltar ao Menu</a>
+        </div>
     </div>
-    <div id="question">Carregando pergunta...</div>
-    <div id="game-area"></div>
-    <div id="level-up" style="display: none;">Nível Up!</div>
 
     <script>
-        class ChuvaNumeros {
-            constructor() {
-                this.stars = 0;
-                this.level = 1;
-                this.time = 0;
-                this.correctCount = 0;
-                this.speed = 1;
-                this.question = null;
-                this.correctAnswer = null;
-                this.numbers = [];
-                this.gameRunning = true;
-                this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                this.init();
+        let score = 0;
+        let lives = 3;
+        let currentAnswer = 0;
+        let drops = [];
+        let gameInterval;
+        
+        // VELOCIDADE INICIAL (0.8 é bem lento e amigável)
+        let dropSpeed = 0.8; 
+
+        const questionEl = document.getElementById('question-box');
+        const scoreEl = document.getElementById('score');
+        const livesEl = document.getElementById('lives');
+        const container = document.getElementById('game-container');
+        const gameOverScreen = document.getElementById('game-over');
+        const finalScoreEl = document.getElementById('final-score');
+        const earnedStarsEl = document.getElementById('earned-stars');
+
+        // Gera uma pergunta de matemática (Tabuada ou Soma)
+        function generateQuestion() {
+            const a = Math.floor(Math.random() * 9) + 1;
+            const b = Math.floor(Math.random() * 9) + 1;
+            const isMultiplication = Math.random() > 0.4; // 60% chance de ser multiplicação
+            
+            if (isMultiplication) {
+                currentAnswer = a * b;
+                questionEl.textContent = `${a} × ${b} = ?`;
+            } else {
+                currentAnswer = a + b;
+                questionEl.textContent = `${a} + ${b} = ?`;
             }
 
-            init() {
-                this.loadQuestion();
-                this.startTimer();
-                this.spawnNumbers();
-                document.getElementById('pause-btn').addEventListener('click', () => this.pauseGame());
-            }
+            createDrops();
+        }
 
-            async loadQuestion() {
-                try {
-                    const response = await fetch('/api/questao_chuva');
-                    const data = await response.json();
-                    this.question = data.question;
-                    this.correctAnswer = data.answer;
-                    document.getElementById('question').textContent = this.question;
-                } catch (error) {
-                    console.error('Erro ao carregar pergunta:', error);
+        // Cria as bolhas caindo
+        function createDrops() {
+            // Limpa as bolhas antigas
+            drops.forEach(d => d.element.remove());
+            drops = [];
+
+            const numDrops = 4; // Quantidade de bolhas caindo ao mesmo tempo
+            const answers = [currentAnswer];
+            
+            // Gera respostas erradas aleatórias
+            while(answers.length < numDrops) {
+                let wrong = currentAnswer + Math.floor(Math.random() * 20) - 10;
+                if (wrong !== currentAnswer && wrong > 0 && !answers.includes(wrong)) {
+                    answers.push(wrong);
                 }
             }
+            
+            // Embaralha as respostas
+            answers.sort(() => Math.random() - 0.5);
 
-            startTimer() {
-                setInterval(() => {
-                    if (this.gameRunning) {
-                        this.time++;
-                        document.getElementById('time').textContent = this.time;
-                    }
-                }, 1000);
-            }
+            // Divide a tela em colunas para as bolhas não caírem uma em cima da outra
+            const sectionWidth = window.innerWidth / numDrops;
 
-            spawnNumbers() {
-                setInterval(() => {
-                    if (this.gameRunning) {
-                        const num = Math.floor(Math.random() * 20) + 1;
-                        this.createNumber(num);
-                    }
-                }, 1000 / this.speed);
-            }
-
-            createNumber(num) {
-                const numberEl = document.createElement('div');
-                numberEl.className = 'number';
-                numberEl.textContent = num;
-                numberEl.style.left = Math.random() * (window.innerWidth - 50) + 'px';
-                numberEl.style.animationDuration = (5 / this.speed) + 's';
-                numberEl.addEventListener('click', () => this.checkAnswer(num, numberEl));
-                document.getElementById('game-area').appendChild(numberEl);
-                this.numbers.push(numberEl);
-
-                // Remove after animation
-                setTimeout(() => {
-                    if (numberEl.parentNode) {
-                        numberEl.parentNode.removeChild(numberEl);
-                        this.numbers = this.numbers.filter(n => n !== numberEl);
-                    }
-                }, 5000 / this.speed);
-            }
-
-            async checkAnswer(num, el) {
-                const isCorrect = num == this.correctAnswer;
-                if (isCorrect) {
-                    el.classList.add('correct');
-                    this.playSound('correct');
-                    this.showExplosion(el);
-                    this.stars++;
-                    this.correctCount++;
-                    document.getElementById('stars').textContent = this.stars;
-                    if (this.correctCount >= 10) {
-                        this.levelUp();
-                    } else {
-                        this.nextQuestion();
-                    }
-                } else {
-                    el.classList.add('wrong');
-                    this.playSound('wrong');
-                    setTimeout(() => el.remove(), 500);
-                }
-                // Validate with backend
-                await fetch('/api/validar_chuva', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ answer: num, correct: isCorrect })
-                });
-            }
-
-            nextQuestion() {
-                this.loadQuestion();
-                this.speed += 0.1;
-            }
-
-            levelUp() {
-                this.level++;
-                this.correctCount = 0;
-                this.speed = 1;
-                document.getElementById('level').textContent = this.level;
-                this.playSound('levelup');
-                const levelUpEl = document.getElementById('level-up');
-                levelUpEl.style.display = 'block';
-                setTimeout(() => levelUpEl.style.display = 'none', 2000);
-                this.saveProgress();
-            }
-
-            showExplosion(el) {
-                const explosion = document.createElement('div');
-                explosion.className = 'explosion';
-                explosion.style.left = el.style.left;
-                explosion.style.top = el.offsetTop + 'px';
-                document.getElementById('game-area').appendChild(explosion);
-                setTimeout(() => explosion.remove(), 500);
-            }
-
-            playSound(type) {
-                const oscillator = this.audioCtx.createOscillator();
-                const gainNode = this.audioCtx.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(this.audioCtx.destination);
-                if (type === 'correct') {
-                    oscillator.frequency.setValueAtTime(800, this.audioCtx.currentTime);
-                    gainNode.gain.setValueAtTime(0.3, this.audioCtx.currentTime);
-                } else if (type === 'wrong') {
-                    oscillator.frequency.setValueAtTime(200, this.audioCtx.currentTime);
-                    gainNode.gain.setValueAtTime(0.3, this.audioCtx.currentTime);
-                } else if (type === 'levelup') {
-                    oscillator.frequency.setValueAtTime(523, this.audioCtx.currentTime);
-                    gainNode.gain.setValueAtTime(0.5, this.audioCtx.currentTime);
-                    oscillator.frequency.setValueAtTime(659, this.audioCtx.currentTime + 0.2);
-                    oscillator.frequency.setValueAtTime(784, this.audioCtx.currentTime + 0.4);
-                }
-                oscillator.start();
-                oscillator.stop(this.audioCtx.currentTime + 0.5);
-            }
-
-            pauseGame() {
-                this.gameRunning = !this.gameRunning;
-                document.getElementById('pause-btn').textContent = this.gameRunning ? 'Pausar' : 'Continuar';
-            }
-
-            async saveProgress() {
-                await fetch('/api/salvar_chuva', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ stars: this.stars, level: this.level, time: this.time })
-                });
+            for (let i = 0; i < numDrops; i++) {
+                const drop = document.createElement('div');
+                drop.className = 'drop';
+                drop.textContent = answers[i];
+                
+                // Posicionamento horizontal
+                const leftPos = (i * sectionWidth) + (sectionWidth / 2) - 40; 
+                drop.style.left = `${leftPos}px`;
+                
+                // Posicionamento vertical inicial (escondido acima da tela)
+                const yPos = -80 - Math.random() * 150; // Descompasso para não caírem alinhadas
+                drop.style.top = `${yPos}px`;
+                
+                // Evento de clique
+                drop.onclick = () => checkAnswer(answers[i], drop);
+                
+                container.appendChild(drop);
+                drops.push({ element: drop, y: yPos, isCorrect: answers[i] === currentAnswer });
             }
         }
 
-        new ChuvaNumeros();
+        // Verifica se o aluno clicou na bolha certa
+        function checkAnswer(answer, dropElement) {
+            if (answer === currentAnswer) {
+                // ACERTOU!
+                score += 10;
+                scoreEl.textContent = score;
+                dropSpeed += 0.05; // Aumenta a velocidade beeeem devagarinho
+                generateQuestion(); // Gera nova pergunta
+            } else {
+                // ERROU!
+                lives--;
+                updateLivesDisplay();
+                dropElement.style.background = 'radial-gradient(circle at 30% 30%, #ff4b2b, #ff416c)'; // Fica vermelho
+                setTimeout(() => dropElement.style.display = 'none', 200);
+                
+                if (lives <= 0) endGame();
+            }
+        }
+
+        // Atualiza a posição das bolhas na tela (Motor do Jogo)
+        function update() {
+            if (lives <= 0) return;
+
+            let correctMissed = false;
+
+            drops.forEach(drop => {
+                drop.y += dropSpeed; // Move a bolha para baixo
+                drop.element.style.top = `${drop.y}px`;
+
+                // Se a bolha passou do fundo da tela
+                if (drop.y > window.innerHeight) {
+                    if (drop.isCorrect) {
+                        correctMissed = true; // Deixou a resposta certa cair!
+                    }
+                    drop.element.remove();
+                }
+            });
+
+            // Remove as bolhas que já saíram da tela do array
+            drops = drops.filter(drop => drop.y <= window.innerHeight);
+
+            // Se a bolha certa caiu no chão, perde vida
+            if (correctMissed) {
+                lives--;
+                updateLivesDisplay();
+                if (lives <= 0) {
+                    endGame();
+                } else {
+                    generateQuestion(); // Gera nova pergunta para continuar
+                }
+            }
+
+            // Chama o próximo frame de animação
+            gameInterval = requestAnimationFrame(update);
+        }
+
+        function updateLivesDisplay() {
+            livesEl.textContent = '❤️'.repeat(Math.max(0, lives));
+        }
+
+        // Finaliza o jogo e salva a pontuação
+        function endGame() {
+            cancelAnimationFrame(gameInterval);
+            drops.forEach(d => d.element.remove());
+            questionEl.textContent = "";
+            
+            // Calcula estrelas (1 estrela a cada 30 pontos)
+            const starsEarned = Math.floor(score / 30);
+            
+            finalScoreEl.textContent = score;
+            earnedStarsEl.textContent = starsEarned;
+            gameOverScreen.style.display = 'block';
+            
+            // Salva as estrelas no banco de dados via API AJAX
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
+            if (starsEarned > 0) {
+                fetch('/api/salvar_resultado', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken // Envia o token de segurança
+                    },
+                    body: JSON.stringify({
+                        game_type: 'chuva_numeros',
+                        stars_earned: starsEarned
+                    })
+                }).then(res => res.json())
+                  .then(data => console.log("Progresso salvo com sucesso!"))
+                  .catch(err => console.error("Erro ao salvar progresso:", err));
+            }
+        }
+
+        // Inicia o jogo
+        function startGame() {
+            score = 0;
+            lives = 3;
+            dropSpeed = 0.8; // Reseta a velocidade
+            scoreEl.textContent = score;
+            updateLivesDisplay();
+            gameOverScreen.style.display = 'none';
+            generateQuestion();
+            update(); // Inicia o motor do jogo
+        }
+
+        // Começa automaticamente quando a página carrega
+        window.onload = startGame;
     </script>
 </body>
 </html>

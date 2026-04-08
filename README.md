@@ -16,3 +16,26 @@ Sistema de "estrelas por questão"?
 Repetir só as questões que errou?
 Banco de dados para vários alunos?
 Sons e animações?
+
+
+
+ana-mate/
+├── app.py
+├── run.py
+├── config.py
+├── requirements.txt
+├── .gitignore
+├── README.md
+├── INSTALACAO.md
+├── CHECKLIST_INSTALACAO.md
+├── ESTRUTURA_PASTA.md
+├── RESUMO_ARQUIVOS.txt
+├── LEIA-ME-PRIMEIRO.md
+└── templates/
+    ├── login.html
+    ├── menu.html
+    ├── falling.html
+    ├── exercicio.html
+    ├── questoes_erradas.html
+    ├── ordem_operacoes.html
+    └── iniciar_exercicio.html

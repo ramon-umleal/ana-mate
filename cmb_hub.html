@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quartel General CMB - Preparatório</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #556B2F, #2F4F2F); /* Verde oliva */
+            color: #DAA520; /* Amarelo dourado */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .header {
+            background-color: #2F4F4F; /* Cinza chumbo */
+            width: 100%;
+            text-align: center;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px #000;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px;
+            padding: 20px;
+            background-color: rgba(47, 79, 79, 0.9); /* Cinza chumbo semi-transparente */
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+        .mission-card {
+            background-color: #556B2F; /* Verde oliva */
+            border: 2px solid #DAA520; /* Amarelo dourado */
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px 0;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+        }
+        .mission-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.7);
+        }
+        .mission-card h2 {
+            margin: 0 0 10px 0;
+            font-size: 1.5em;
+        }
+        .mission-card .stars {
+            font-size: 1.2em;
+            color: #FFD700; /* Dourado */
+        }
+        .back-button {
+            background-color: #8B4513; /* Marrom militar */
+            color: #DAA520;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+        .back-button:hover {
+            background-color: #A0522D;
+        }
+        /* Camuflagem sutil */
+        .container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                              radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+            pointer-events: none;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Quartel General CMB - Preparatório</h1>
+    </div>
+    <div class="container" style="position: relative;">
+        <h2>Selecione sua Missão</h2>
+        <div class="mission-card" onclick="window.location.href='/cmb_simulado/1'">
+            <h2>Operações Básicas</h2>
+            <div class="stars">★ ★ ★</div>
+        </div>
+        <div class="mission-card" onclick="window.location.href='/cmb_simulado/2'">
+            <h2>Frações e Decimais</h2>
+            <div class="stars">★ ★ ★ ★</div>
+        </div>
+        <div class="mission-card" onclick="window.location.href='/cmb_simulado/3'">
+            <h2>Geometria</h2>
+            <div class="stars">★ ★ ★ ★ ★</div>
+        </div>
+        <div class="mission-card" onclick="window.location.href='/cmb_simulado/4'">
+            <h2>Problemas de Lógica</h2>
+            <div class="stars">★ ★ ★ ★ ★ ★</div>
+        </div>
+        <button class="back-button" onclick="window.location.href='/dashboard'">Voltar ao Dashboard</button>
+    </div>
+</body>
+</html>

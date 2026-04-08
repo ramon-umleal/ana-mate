@@ -1,2 +1,15 @@
+# requirements.txt
+#
+# Este arquivo lista todas as dependências Python necessárias para o projeto ANA-MATE.
+# Para instalar todas as dependências, execute o comando:
+# pip install -r requirements.txt
+#
+# Para atualizar as dependências para as versões mais recentes compatíveis, execute:
+# pip install --upgrade -r requirements.txt
+#
 Flask
-Flask-SQLAlchemy==3.1.1
+Flask-SQLAlchemy
+SQLAlchemy
+Werkzeug
+python-dotenv
+Flask-WTF

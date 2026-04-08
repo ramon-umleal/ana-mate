@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulado Colégio Militar - ANA-MATE</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace; /* Fonte estilo máquina de escrever/militar */
+            background-color: #2e3b32; /* Verde militar escuro */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #ecf0f1;
+        }
+        .container {
+            max-width: 700px;
+            width: 90%;
+            padding: 30px;
+            background-color: #3e4f42; /* Verde militar mais claro */
+            border: 3px solid #5c725f;
+            border-radius: 10px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        /* Detalhe estético de "parafuso" nos cantos */
+        .container::before, .container::after {
+            content: "◎";
+            position: absolute;
+            color: #7f8c8d;
+            font-size: 20px;
+        }
+        .container::before { top: 10px; left: 10px; }
+        .container::after { bottom: 10px; right: 10px; }
+
+        h1 {
+            font-size: 2.5em;
+            color: #f1c40f; /* Amarelo insígnia */
+            text-align: center;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #bdc3c7;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+        .question-box {
+            background-color: #1e2722;
+            padding: 20px;
+            border-left: 5px solid #f1c40f;
+            font-size: 1.5em;
+            margin-bottom: 30px;
+            border-radius: 0 5px 5px 0;
+        }
+        .options {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 30px 0;
+        }
+        .option-item {
+            background-color: #4a5d4e;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+        .option-item:hover {
+            background-color: #5c725f;
+        }
+        .option-label {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            cursor: pointer;
+            font-size: 1.3em;
+            font-weight: bold;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .option-label input[type="radio"] {
+            margin-right: 15px;
+            transform: scale(1.5);
+            accent-color: #f1c40f;
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.5em;
+            background-color: #f1c40f;
+            color: #2e3b32;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: transform 0.1s, background-color 0.3s;
+        }
+        .btn-submit:hover {
+            background-color: #f39c12;
+            transform: translateY(-2px);
+        }
+        .btn-submit:active {
+            transform: scale(0.98);
+        }
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px dashed #5c725f;
+            font-size: 1.2em;
+            color: #bdc3c7;
+        }
+        
+        /* Flash Messages */
+        .flash-messages { margin-bottom: 20px; }
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 1.2em;
+        }
+        .alert-success { background-color: #27ae60; color: white; }
+        .alert-error { background-color: #c0392b; color: white; }
+        .alert-warning { background-color: #e67e22; color: white; }
+
+        .btn-voltar {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #bdc3c7;
+            text-decoration: none;
+            font-size: 1.1em;
+        }
+        .btn-voltar:hover { color: #fff; text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>SIMULADO CMB</h1>
+        <div class="subtitle">PREPARAÇÃO DE ELITE - 5º ANO</div>
+
+        <!-- Mensagens de Acerto/Erro -->
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- A Pergunta -->
+        <div class="question-box">
+            {{ questao.pergunta_texto }}
+        </div>
+
+        <!-- Formulário de Múltipla Escolha -->
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            
+            <ul class="options">
+                {% for opcao in questao.opcoes %}
+                <li class="option-item">
+                    <label class="option-label">
+                        <input type="radio" name="resposta" value="{{ opcao }}" required>
+                        {{ opcao }}
+                    </label>
+                </li>
+                {% endfor %}
+            </ul>
+
+            <button type="submit" class="btn-submit">Confirmar Resposta</button>
+        </form>
+
+        <!-- Barra Inferior -->
+        <div class="hud">
+            <div>Questão: <strong style="color:#f1c40f;">{{ state.questao_atual }} / {{ state.total_questoes }}</strong></div>
+            <div>Acertos: <strong>{{ state.acertos }}</strong></div>
+        </div>
+
+        <a href="{{ url_for('dashboard') }}" class="btn-voltar">Abortar Missão (Voltar ao Menu)</a>
+    </div>
+
+</body>
+</html>

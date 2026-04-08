@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulado Militar - CMB</title>
+    <style>
+        body {
+            background-color: #2e2e2e;
+            color: #c0c0c0;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background-color: #1a1a1a;
+            border: 2px solid #4b5320;
+            padding: 20px;
+            width: 80%;
+            max-width: 800px;
+            box-shadow: 0 0 10px #4b5320;
+        }
+        h1 {
+            color: #8fbc8f;
+            text-align: center;
+            font-size: 2em;
+        }
+        .timer {
+            text-align: center;
+            font-size: 1.5em;
+            color: #ffa500;
+            margin-bottom: 20px;
+        }
+        .question {
+            background-color: #3a3a3a;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #4b5320;
+        }
+        .question h2 {
+            color: #8fbc8f;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        input[type="text"] {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #2e2e2e;
+            color: #c0c0c0;
+            border: 1px solid #4b5320;
+            font-family: 'Courier New', monospace;
+        }
+        button {
+            padding: 10px;
+            background-color: #4b5320;
+            color: #c0c0c0;
+            border: none;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #5a6a29;
+        }
+        .flash {
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .flash.success {
+            background-color: #228b22;
+            color: #fff;
+        }
+        .flash.error {
+            background-color: #8b0000;
+            color: #fff;
+        }
+        .back-button {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Missão Atual: Simulado CMB</h1>
+        <div class="timer" id="timer">00:00:00</div>
+        <div class="question">
+            <h2>Pergunta:</h2>
+            <p>{{ questao }}</p>
+        </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form method="POST" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="text" name="resposta" placeholder="Digite sua resposta aqui" required>
+            <button type="submit">CONFIRMAR RESPOSTA, SENHOR!</button>
+        </form>
+        <div class="back-button">
+            <a href="/cmb_hub"><button>VOLTAR AO QUARTEL GENERAL</button></a>
+        </div>
+    </div>
+    <script>
+        // Cronômetro simples (estético, conta para cima)
+        let seconds = 0;
+        let minutes = 0;
+        let hours = 0;
+        const timerElement = document.getElementById('timer');
+        
+        function updateTimer() {
+            seconds++;
+            if (seconds === 60) {
+                seconds = 0;
+                minutes++;
+                if (minutes === 60) {
+                    minutes = 0;
+                    hours++;
+                }
+            }
+            timerElement.textContent = 
+                (hours < 10 ? '0' : '') + hours + ':' +
+                (minutes < 10 ? '0' : '') + minutes + ':' +
+                (seconds < 10 ? '0' : '') + seconds;
+        }
+        
+        setInterval(updateTimer, 1000);
+    </script>
+</body>
+</html>

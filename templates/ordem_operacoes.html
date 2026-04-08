@@ -20,7 +20,7 @@
         }
         .container {
             max-width: 800px;
-            padding: 20px;
+            padding: 30px;
             text-align: center;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 15px;
@@ -66,27 +66,44 @@
             font-size: 2em;
             animation: bounce 2s infinite;
         }
-        button {
-            background: #ff6b6b;
+        .botoes-acao {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .btn {
             color: white;
             border: none;
             padding: 15px 30px;
             font-size: 1.2em;
             border-radius: 10px;
             cursor: pointer;
-            margin: 10px;
-            transition: transform 0.3s, background 0.3s;
+            transition: transform 0.3s, background 0.3s, box-shadow 0.3s;
+            text-decoration: none;
+            font-weight: bold;
+            width: 80%;
+            max-width: 300px;
         }
-        button:hover {
+        .btn-start {
+            background: #ff6b6b;
+        }
+        .btn-start:hover {
             transform: scale(1.05);
             background: #ff5252;
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
         }
-        .start-btn {
-            font-size: 1.5em;
-            padding: 20px 40px;
+        .btn-back {
+            background: #6c757d;
+        }
+        .btn-back:hover {
+            transform: scale(1.05);
+            background: #5a6268;
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
         }
         .tips {
-            margin-top: 20px;
+            margin-top: 30px;
             font-size: 1em;
             background: rgba(255, 255, 255, 0.1);
             padding: 15px;
@@ -120,24 +137,33 @@
             <p>A ordem é: primeiro os parênteses (se houver), depois multiplicação e divisão (da esquerda para a direita), e por último adição e subtração. É como o PEMDAS ou BODMAS! Isso torna as contas justas e corretas. 🌟</p>
             <p>Este desafio é maior que a tabuada, pois combina tudo! Vamos praticar e ganhar estrelas? 🚀</p>
         </div>
+        
         <div class="level-stars">
             <div class="level">
                 <h3>Nível Atual</h3>
-                <p>O{{ aluno.nivel_ordem_operacoes or '1' }}</p>
+                <p>O{{ student.nivel_ordem_operacoes or '1' }}</p>
             </div>
             <div class="stars">
                 <h3>Total de Estrelas</h3>
-                <p>{{ aluno.total_estrelas }} ⭐</p>
+                <p>{{ student.total_estrelas }} ⭐</p>
             </div>
         </div>
+        
         <div class="operations-cards">
             <div class="card">➕</div>
             <div class="card">➖</div>
             <div class="card">✖️</div>
             <div class="card">➗</div>
         </div>
-        <button class="start-btn" onclick="window.location.href='/iniciar_ordem'">COMEÇAR OS DESAFIOS</button>
-        <button onclick="window.location.href='/menu'">VOLTAR À TABUADA</button>
+        
+        <div class="botoes-acao">
+            <!-- Botão para iniciar o jogo -->
+            <a href="{{ url_for('exercicio_ordem') }}" class="btn btn-start">COMEÇAR OS DESAFIOS</a>
+            
+            <!-- Botão corrigido para voltar ao Dashboard -->
+            <a href="{{ url_for('dashboard') }}" class="btn btn-back">⬅️ VOLTAR AO MENU</a>
+        </div>
+        
         <div class="tips">
             <p><strong>Dica rápida:</strong> Lembre-se de PEMDAS: Parênteses, Expoentes, Multiplicação, Divisão, Adição, Subtração. Ou BODMAS no Brasil! 🎯</p>
         </div>

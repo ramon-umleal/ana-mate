@@ -39,3 +39,16 @@ ana-mate/
     ├── questoes_erradas.html
     ├── ordem_operacoes.html
     └── iniciar_exercicio.html
+
+
+
+pip install gunicorn
+gunicorn --bind 0.0.0.0:8000 --workers 2 app:app
+
+# Para rodar em background permanente:
+nohup gunicorn --bind 0.0.0.0:8000 --workers 2 app:app &
+
+# Ou melhor ainda, use screen:
+sudo apt install screen -y
+screen -S flask
+gunicorn --bind 0.0.0.0:8000 --workers 2 app:app    

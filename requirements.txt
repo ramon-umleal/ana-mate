@@ -13,3 +13,4 @@ SQLAlchemy
 Werkzeug
 python-dotenv
 Flask-WTF
+flask_login

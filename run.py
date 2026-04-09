@@ -55,14 +55,14 @@ def main():
     print("URL local: http://127.0.0.1:5000")
     network_ip = get_network_ip()
     if network_ip != 'Não disponível':
-        print(f"URL da rede (para acesso do celular): http://{network_ip}:5000")
+        print(f"URL da rede (para acesso do celular): http://{network_ip}:8000")
     else:
         print("URL da rede: Não disponível")
     print(f"Status do banco de dados: {db_status}")
     print("\nIniciando o servidor...")
     
     # Executa a aplicação Flask
-    app.run(host='0.0.0.0', port=5000, debug=(env == 'development'))
+    app.run(host='0.0.0.0', port=8000, debug=(env == 'development'))
 
 # Executa a função principal se o script for chamado diretamente
 if __name__ == '__main__':
